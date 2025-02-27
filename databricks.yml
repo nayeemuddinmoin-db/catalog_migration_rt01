@@ -1,0 +1,243 @@
+bundle:
+  name: "Databricks UC DR Project"
+
+workspace:
+  root_path: /Workspace/Shared/DAB/.bundle/${bundle.name}/environment/${bundle.target}
+
+include:
+  - ./resources/jobs/*.yml
+
+variables:
+  backup_history_in_days:
+    description: Number of days to keep the backup history
+    default: 30
+  backup_location_metastore:
+    description: Default Azure Storage Account for backup Data
+    default:
+  backup_location_client_secret:
+    description: Default Azure Client Secret to Auth against the storage
+    default:
+  backup_location_client_id:
+    description: Default Azure Client ID to Auth against the storage
+    default:
+  azure_creds:
+    description: Azure Storage Account Monitoring Credentials - used to list existing PEs
+    default:
+  pe_subscription_id:
+    description: Azure Subscription ID for the PE
+    default:
+  pe_resource_group_name:
+    description: Azure Resource Group Name for the PE
+    default:
+  pe_vnet_name:
+    description: Azure VNET Name for the PE
+    default:
+  pe_subnet_name:
+    description: Azure Subnet Name for the PE
+    default:
+  email_credential_scope:
+    description: Databricks Secret scope that stores MS Graph output email credentials \
+                 there should be a secret key named 'email-secret' with the actual secret 
+    default: edapemail
+  run_dbx_jobs_as_user:
+    description: Databricks user to run the jobs - need to a MS admin with full MS access (all catalogs and objects)
+    default: svcedapucdr@pepsico.com
+  wheel_packages_location:
+    description: Default location for wheel packages (libraries) in the workspace 
+    default: 
+
+targets:
+#### Copy this section to create a new target (new metastore under a different region)
+  master_ws_metastore_eastus:
+    workspace:
+      host: https://adb-5241939935640985.5.azuredatabricks.net
+    variables:
+      backup_location_metastore: abfss://dr-uc-metastore-backup@dbkucmetastoreeusadls2dr.dfs.core.windows.net
+      backup_location_client_secret: "{{secrets/edap-dbk-uc-dr-scope/edap-dbk-uc-eus-spn-secret}}"
+      backup_location_client_id: "{{secrets/edap-dbk-uc-dr-scope/edap-dbk-uc-eus-spn-clientid}}"
+      azure_creds: empty
+      pe_subscription_id: some_subs_id
+      pe_resource_group_name: some_pe_rg_name
+      pe_vnet_name: some_pe_vnet_name
+      pe_subnet_name: some_pe_subnet_name
+      wheel_packages_location: /Workspace/Edap_Platform
+    
+    sa_config_eastus: &sa_config_eastus
+      spark.hadoop.fs.azure.account.oauth2.client.secret.dbkucmetastoreeusadls2dr.dfs.core.windows.net: "${var.backup_location_client_secret}"
+      spark.hadoop.fs.azure.account.oauth2.client.endpoint.dbkucmetastoreeusadls2dr.dfs.core.windows.net: https://login.microsoftonline.com/42cc3295-cd0e-449c-b98e-5ce5b560c1d3/oauth2/token
+      spark.hadoop.fs.azure.account.oauth.provider.type.dbkucmetastoreeusadls2dr.dfs.core.windows.net: org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider
+      spark.hadoop.fs.azure.account.auth.type.dbkucmetastoreeusadls2dr.dfs.core.windows.net: OAuth
+      spark.hadoop.fs.azure.account.oauth2.client.id.dbkucmetastoreeusadls2dr.dfs.core.windows.net: "${var.backup_location_client_id}"
+
+    default_custom_tags_eastus: &default_custom_tags_eastus
+      BusinessSector: CTO
+      SupportContact: Ravi.Munaganuri@pepsico.com
+      BillingInformation: H-007622
+      OrgGrpCodeProjectCode: CTO-EDAP
+      BusinessContact: AmitKumar.Singh@pepsico.com
+      ProjectName: EDAP
+      ProjectNumber: x
+      Purpose: UC_DR_Cluster_Backup-Restore
+
+    resources:
+      jobs:
+        wf_uc_dr_backup:
+          name: wf_uc_dr_backup
+          job_clusters:
+            - job_cluster_key: uc_dr_backup_job_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+
+        wf_uc_dr_restore:
+          name: wf_uc_dr_restore
+          job_clusters:
+            - job_cluster_key: Run_Restore_Pre_Table_cluster_1
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_0_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_2_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_3_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_4_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_5_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_6_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+            - job_cluster_key: Restore_Table_Group_7_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_eastus
+                custom_tags:
+                  <<: *default_custom_tags_eastus
+
+
+#New Target for SCUS metastore
+  master_ws_metastore_southcentralus:
+    workspace:
+      host: https://adb-4036443077305859.19.azuredatabricks.net
+    variables:
+      backup_location_metastore: abfss://dr-uc-metastore-backup@dbkucmetastorescusadlsdr.dfs.core.windows.net
+      backup_location_client_secret: "{{secrets/edap-dbk-uc-dr-scope/edap-dbk-uc-scus-spn-secret}}"
+      backup_location_client_id: "{{secrets/edap-dbk-uc-dr-scope/edap-dbk-uc-scus-spn-clientid}}"
+      azure_creds: empty
+      pe_subscription_id: some_subs_id
+      pe_resource_group_name: some_pe_rg_name
+      pe_vnet_name: some_pe_vnet_name
+      pe_subnet_name: some_pe_subnet_name
+      wheel_packages_location: /Workspace/Edap_Platform
+                         
+    sa_config_southcentralus: &sa_config_southcentralus
+      spark.hadoop.fs.azure.account.oauth2.client.secret.dbkucmetastorescusadlsdr.dfs.core.windows.net: "${var.backup_location_client_secret}"
+      spark.hadoop.fs.azure.account.oauth2.client.endpoint.dbkucmetastorescusadlsdr.dfs.core.windows.net: https://login.microsoftonline.com/42cc3295-cd0e-449c-b98e-5ce5b560c1d3/oauth2/token
+      spark.hadoop.fs.azure.account.oauth.provider.type.dbkucmetastorescusadlsdr.dfs.core.windows.net: org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider
+      spark.hadoop.fs.azure.account.auth.type.dbkucmetastorescusadlsdr.dfs.core.windows.net: OAuth
+      spark.hadoop.fs.azure.account.oauth2.client.id.dbkucmetastorescusadlsdr.dfs.core.windows.net: "${var.backup_location_client_id}"
+
+    default_custom_tags_southcentralus: &default_custom_tags_southcentralus
+      BusinessSector: CTO
+      SupportContact: Ravi.Munaganuri@pepsico.com
+      BillingInformation: H-007622
+      OrgGrpCodeProjectCode: CTO-EDAP
+      BusinessContact: AmitKumar.Singh@pepsico.com
+      ProjectName: EDAP
+      ProjectNumber: x
+      Purpose: UC_DR_Cluster_Backup-Restore
+
+    resources:
+      jobs:
+        wf_uc_dr_backup:
+          name: wf_uc_dr_backup
+          job_clusters:
+            - job_cluster_key: uc_dr_backup_job_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+
+        wf_uc_dr_restore:
+          name: wf_uc_dr_restore
+          job_clusters:
+            - job_cluster_key: Run_Restore_Pre_Table_cluster_1
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_0_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_2_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_3_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_4_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_5_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_6_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+            - job_cluster_key: Restore_Table_Group_7_cluster
+              new_cluster:
+                spark_conf:
+                  <<: *sa_config_southcentralus
+                custom_tags:
+                  <<: *default_custom_tags_southcentralus
+
+#### End of section

@@ -1,0 +1,468 @@
+resources:
+  jobs:
+    wf_uc_dr_restore:
+      name: wf_uc_dr_restore
+      email_notifications:
+        on_failure:
+          - naeem.akhtar.contractor@pepsico.com
+          - rakesh.kundarapu.contractor@pepsico.com
+          - josephraymond.tena.contractor@pepsico.com
+          - ravi.munaganuri@pepsico.com
+        no_alert_for_skipped_runs: true
+      notification_settings:
+        no_alert_for_skipped_runs: true
+        no_alert_for_canceled_runs: true
+      run_as: 
+        user_name: ${var.run_dbx_jobs_as_user}
+      tasks:
+        - task_key: BatchJobExecutionStart
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/utilities/batch_job_execution_start
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: RestoreObjectCount
+          depends_on:
+            - task_key: BatchJobExecutionStart
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/check_restore_object_count
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: CheckRestoreObjectCount
+          depends_on:
+            - task_key: RestoreObjectCount
+          condition_task:
+            op: GREATER_THAN
+            left: "{{tasks.RestoreObjectCount.values.restore_object_count}}"
+            right: "5000"
+        - task_key: Run_Restore_Pre_Table
+          depends_on:
+            - task_key: CheckRestoreObjectCount
+              outcome: "true"
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_pre_table
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_0
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "0"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_0_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_1
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "1"
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_2
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "2"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_2_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_3
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "3"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_3_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_4
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "4"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_4_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_5
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "5"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_5_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_6
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "6"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_6_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Restore_Table_Group_7
+          depends_on:
+            - task_key: Run_Restore_Pre_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_table
+            base_parameters:
+              schema_group_id: "7"
+            source: GIT
+          job_cluster_key: Restore_Table_Group_7_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Run_Restore
+          depends_on:
+            - task_key: CheckRestoreObjectCount
+              outcome: "false"
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: BatchJobExecution_Failed
+          depends_on:
+            - task_key: Run_Restore
+          run_if: AT_LEAST_ONE_FAILED
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/utilities/batch_job_execution_end
+            base_parameters:
+              Job_Status: Failed
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+        - task_key: BatchJobExecution_Succeeded
+          depends_on:
+            - task_key: Run_Restore
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/utilities/batch_job_execution_end
+            base_parameters:
+              Job_Status: Succeeded
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+        - task_key: DR_Restore_stats
+          depends_on:
+            - task_key: BatchJobExecution_Succeeded
+            - task_key: BatchJobExecution_Failed
+          run_if: AT_LEAST_ONE_SUCCESS
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/dr_restore_report
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/msal-1.28.0-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: Run_Restore_Post_Table
+          depends_on:
+            - task_key: Restore_Table_Group_1
+            - task_key: Restore_Table_Group_4
+            - task_key: Restore_Table_Group_0
+            - task_key: Restore_Table_Group_6
+            - task_key: Restore_Table_Group_3
+            - task_key: Restore_Table_Group_5
+            - task_key: Restore_Table_Group_2
+            - task_key: Restore_Table_Group_7
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/main_restore_post_table
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+        - task_key: BatchJobExecution2_Failed
+          depends_on:
+            - task_key: Run_Restore_Post_Table
+          run_if: AT_LEAST_ONE_FAILED
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/utilities/batch_job_execution_end
+            base_parameters:
+              Job_Status: Failed
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+        - task_key: BatchJobExecution2_Succeeded
+          depends_on:
+            - task_key: Run_Restore_Post_Table
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/utilities/batch_job_execution_end
+            base_parameters:
+              Job_Status: Succeeded
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+        - task_key: DR_Restore2_stats
+          depends_on:
+            - task_key: BatchJobExecution2_Failed
+            - task_key: BatchJobExecution2_Succeeded
+          run_if: AT_LEAST_ONE_SUCCESS
+          notebook_task:
+            notebook_path: src/dr/uc_dr_restore/dr_restore_report
+            source: GIT
+          job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          libraries:
+            - whl: ${var.wheel_packages_location}/msal-1.28.0-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+          max_retries: 2
+          min_retry_interval_millis: 10000
+      job_clusters:
+        - job_cluster_key: Run_Restore_Pre_Table_cluster_1
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E64ds_v5
+            driver_node_type_id: Standard_E64ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_0_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_2_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_3_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_4_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_5_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_6_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+        - job_cluster_key: Restore_Table_Group_7_cluster
+          new_cluster:
+            cluster_name: ""
+            spark_version: 14.3.x-cpu-ml-scala2.12
+            spark_conf:
+              spark.databricks.delta.optimizeWrite.enabled: "true"
+              spark.databricks.delta.autoCompact.enabled: "true"
+              spark.databricks.delta.preview.enabled: "true"
+              spark.master: local[*, 4]
+              spark.cleaner.periodicGC.interval: "15"
+              # spark.databricks.cluster.profile: singleNode
+              spark.akka.frameSize: "1000"
+            azure_attributes:
+              first_on_demand: 1
+              availability: ON_DEMAND_AZURE
+              spot_bid_max_price: -1
+            node_type_id: Standard_E32ds_v5
+            driver_node_type_id: Standard_E32ds_v5
+            enable_elastic_disk: true
+            data_security_mode: SINGLE_USER
+            runtime_engine: STANDARD
+            num_workers: 0
+      git_source:
+        git_url: https://dev.azure.com/PepsiCoIT/Enterprise_Data_Analytics_Platform/_git/edap-databricks-uc-dr
+        git_provider: azureDevOpsServices
+        git_branch: main
+      parameters:
+        - name: dr_adls_root_path
+          default: ${var.backup_location_metastore}
+        - name: input_json_str
+          default: ""
+        - name: restart_mode
+          default: FRESH_START
+        - name: time_travel_option
+          default: timestamp
+        - name: time_travel_value
+          default: ""
+        - name: send_report_from_email_id
+          default: svcedapucdr@pepsico.com
+        - name: send_report_to_email_id
+          default: naeem.akhtar.contractor@pepsico.com;rakesh.kundarapu.contractor@pepsico.com;josephraymond.tena.contractor@pepsico.com;ravi.munaganuri@pepsico.com

@@ -1,0 +1,77 @@
+new_cluster: &new_cluster
+  new_cluster:
+    spark_version: 14.3.x-cpu-ml-scala2.12
+    node_type_id: Standard_F8s
+    driver_node_type_id: Standard_F16s
+    enable_elastic_disk: true
+    data_security_mode: SINGLE_USER
+    runtime_engine: STANDARD
+    autoscale:
+      min_workers: 1
+      max_workers: 2
+    azure_attributes:
+      first_on_demand: 1
+      availability: ON_DEMAND_AZURE
+      spot_bid_max_price: -1
+
+resources:
+  jobs:
+    wf_uc_dr_sa_monitoring:
+      name: wf_uc_dr_sa_monitoring
+      job_clusters:
+        - job_cluster_key: uc_dr_sa_monitoring_job_cluster
+          <<: *new_cluster
+      email_notifications:
+        on_failure:
+          - naeem.akhtar.contractor@pepsico.com
+          - rakesh.kundarapu.contractor@pepsico.com
+          - josephraymond.tena.contractor@pepsico.com
+          - ravi.munaganuri@pepsico.com
+        no_alert_for_skipped_runs: true
+      notification_settings:
+        no_alert_for_skipped_runs: true
+        no_alert_for_canceled_runs: true
+      schedule:
+        quartz_cron_expression: 11 22 1/8 * * ?
+        timezone_id: UTC
+        pause_status: PAUSED
+      max_concurrent_runs: 1
+      run_as: 
+        user_name: ${var.run_dbx_jobs_as_user}
+      tasks:
+        - task_key: UC-DR-SA-Monitoring
+          notebook_task:
+            notebook_path: resources/storage_account_monitoring/uc_dr_sa_monitoring
+            base_parameters:
+              azure_creds: ${var.azure_creds}
+              pe_subs_id: ${var.pe_subscription_id}
+              pe_rg_name: ${var.pe_resource_group_name}
+              pe_vnet_name: ${var.pe_vnet_name}
+              pe_subnet_name: ${var.pe_subnet_name}
+              email_credential_scope: ${var.email_credential_scope}
+            source: GIT
+          job_cluster_key: uc_dr_sa_monitoring_job_cluster
+          libraries:
+            # - pypi:
+            #     package: azure-identity==1.16.0
+            # - pypi:
+            #     package: azure-mgmt-network==25.3.0
+            # - pypi:
+            #     package: azure-mgmt-storage==21.1.0
+            # - pypi:
+            #     package: azure-mgmt-subscription==3.1.1
+            # - pypi:
+            #     package: msal==1.28.0
+            # - whl: ${var.custom_email_wheel}
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/azure_identity-1.16.0-py2.py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/azure_mgmt_network-25.3.0-py2.py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/azure_mgmt_storage-21.1.0-py2.py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/azure_mgmt_subscription-3.1.1-py2.py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/msal-1.28.0-py3-none-any.whl
+      git_source:
+        git_url: https://dev.azure.com/PepsiCoIT/Enterprise_Data_Analytics_Platform/_git/edap-databricks-uc-dr
+        git_provider: azureDevOpsServices
+        git_branch: main
+      queue:
+        enabled: true

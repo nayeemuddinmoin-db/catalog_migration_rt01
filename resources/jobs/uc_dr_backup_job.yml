@@ -1,0 +1,74 @@
+new_cluster: &new_cluster
+  new_cluster:
+    spark_version: 14.3.x-cpu-ml-scala2.12
+    node_type_id: Standard_F8s
+    driver_node_type_id: Standard_F16s
+    enable_elastic_disk: true
+    data_security_mode: SINGLE_USER
+    runtime_engine: STANDARD
+    autoscale:
+      min_workers: 1
+      max_workers: 4
+    azure_attributes:
+      first_on_demand: 1
+      availability: ON_DEMAND_AZURE
+      spot_bid_max_price: -1
+
+resources:
+  jobs:
+    wf_uc_dr_backup:
+      name: wf_uc_dr_backup
+      job_clusters:
+        - job_cluster_key: uc_dr_backup_job_cluster
+          <<: *new_cluster
+      email_notifications:
+        on_failure:
+          - naeem.akhtar.contractor@pepsico.com
+          - rakesh.kundarapu.contractor@pepsico.com
+          - josephraymond.tena.contractor@pepsico.com
+          - ravi.munaganuri@pepsico.com
+        no_alert_for_skipped_runs: true
+      notification_settings:
+        no_alert_for_skipped_runs: true
+        no_alert_for_canceled_runs: true
+      schedule:
+        quartz_cron_expression: 11 22 1/2 * * ?
+        timezone_id: UTC
+        pause_status: UNPAUSED
+      queue:
+        enabled: true
+      run_as: 
+        user_name: ${var.run_dbx_jobs_as_user}
+      tasks:
+        - task_key: UC-DR-Backup
+          notebook_task:
+            notebook_path: resources/backup/uc_dr_backup
+            base_parameters:
+              backup_history_in_days: ${var.backup_history_in_days}
+              dest_storage_path: ${var.backup_location_metastore}
+              email_credential_scope: ${var.email_credential_scope}
+            source: GIT
+          job_cluster_key: uc_dr_backup_job_cluster
+          libraries:
+            - whl: ${var.wheel_packages_location}/pepsendemail-0.2-py2.py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/databricks_sdk-0.25.1-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/Jinja2-3.1.3-py3-none-any.whl
+            - whl: ${var.wheel_packages_location}/msal-1.28.0-py3-none-any.whl
+          max_retries: 1
+          min_retry_interval_millis: 900000
+        - task_key: UC-DR-Backup-OptimizeAndCleanup
+          depends_on:
+            - task_key: UC-DR-Backup
+          notebook_task:
+            notebook_path: resources/backup/uc_dr_backup_optimize
+            base_parameters:
+              backup_history_in_days: ${var.backup_history_in_days}
+              dest_storage_path: ${var.backup_location_metastore}
+            source: GIT
+          job_cluster_key: uc_dr_backup_job_cluster
+      git_source:
+        git_url: https://dev.azure.com/PepsiCoIT/Enterprise_Data_Analytics_Platform/_git/edap-databricks-uc-dr
+        git_provider: azureDevOpsServices
+        git_branch: main
+      queue:
+        enabled: true
